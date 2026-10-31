@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Never-Out — Inventario Inteligente</title>
+    <meta name="description" content="Never-Out: sistema IoT que conecta tu nevera con la tienda de barrio. ESP32 + Sensores + Telegram.">
+    <!-- Tailwind CSS v3 vía CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración extendida de Tailwind: paleta neón, sombras y glassmorphism -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space:    '#030712',
+                        graphite: '#0F172A',
+                        panel:    '#1E293B',
+                        neon:     '#00F2FE',
+                        teal:     '#00ADB5',
+                        violet:   '#8B5CF6',
+                        indigo:   '#6366F1',
+                        emerald2: '#10B981',
+                        amber2:   '#F59E0B',
+                        redneon:  '#EF4444',
+                        techgray: '#94A3B8',
+                    },
+                    fontFamily: {
+                        poppins: ['Poppins', 'sans-serif'],
+                        inter:   ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        neon:     '0 0 30px rgba(0,242,254,0.08)',
+                        neonglow: '0 0 45px rgba(0,242,254,0.35)',
+                        violetglow: '0 0 45px rgba(139,92,246,0.30)',
+                    },
+                    animation: {
+                        'pulse-red': 'pulseRed 1.4s ease-in-out infinite',
+                        'float':     'float 6s ease-in-out infinite',
+                        'scan':      'scan 3s linear infinite',
+                    },
+                    keyframes: {
+                        pulseRed: {
+                            '0%,100%': { boxShadow: '0 0 0px rgba(239,68,68,0.1)' },
+                            '50%':     { boxShadow: '0 0 35px rgba(239,68,68,0.55)' },
+                        },
+                        float: {
+                            '0%,100%': { transform: 'translateY(0px)' },
+                            '50%':     { transform: 'translateY(-14px)' },
+                        },
+                        scan: {
+                            '0%':   { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(400%)' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Base: fondo espacial profundo */
+        body { background-color: #030712; font-family: 'Inter', sans-serif; }
+        /* Malla de fondo tecnológica */
+        .grid-bg {
+            background-image:
+                linear-gradient(rgba(0,242,254,0.045) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,242,254,0.045) 1px, transparent 1px);
+            background-size: 44px 44px;
+        }
+        /* Gradiente de texto cian -> azul */
+        .text-gradient {
+            background: linear-gradient(90deg, #00F2FE, #3B82F6, #8B5CF6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        /* Barra de scroll personalizada */
+        ::-webkit-scrollbar { width: 9px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ADB5; }
+        /* Línea de escaneo del hero */
+        .scanline {
+            position: absolute; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0,242,254,0.7), transparent);
+        }
+    </style>
+</head>
+<body class="text-white antialiased overflow-x-hidden">
+
+<!-- ==================== NAVBAR FLOTANTE GLASSMORPHISM ==================== -->
+<nav class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-6xl rounded-2xl border border-cyan-500/30 bg-graphite/60 backdrop-blur-xl shadow-neon">
+    <div class="flex items-center justify-between px-5 py-3">
+        <!-- Logo tecnológico -->
+        <a href="index.html" class="flex items-center gap-2.5 group">
+            <div class="relative w-9 h-9 rounded-xl bg-gradient-to-br from-neon to-indigo flex items-center justify-center shadow-neonglow">
+                <span class="text-space font-extrabold text-lg">N</span>
+                <span class="absolute inset-0 rounded-xl border border-white/20"></span>
+            </div>
+            <span class="font-poppins font-bold text-lg tracking-tight">Never<span class="text-neon">-Out</span></span>
+        </a>
+        <!-- Links desktop -->
+        <div class="hidden md:flex items-center gap-8 text-sm font-medium text-techgray">
+            <a href="#caracteristicas" class="hover:text-neon transition-colors">Características</a>
+            <a href="#arquitectura"  class="hover:text-neon transition-colors">Arquitectura</a>
+            <a href="#entregas"      class="hover:text-neon transition-colors">Entregas</a>
+        </div>
+        <!-- CTA -->
+        <a href="login.html" class="rounded-xl bg-neon px-5 py-2.5 text-sm font-semibold text-space shadow-neonglow hover:bg-white transition-all duration-300 hover:scale-105">
+            Iniciar Sesión
+        </a>
+    </div>
+</nav>
+
+<!-- ==================== HERO SECTION ==================== -->
+<header class="relative grid-bg min-h-screen flex items-center pt-28 pb-16">
+    <!-- Resplandores de fondo -->
+    <div class="absolute top-1/4 -left-32 w-96 h-96 bg-neon/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-1/4 -right-32 w-96 h-96 bg-violet/15 rounded-full blur-[120px] pointer-events-none"></div>
+    <!-- Línea de escaneo decorativa -->
+    <div class="scanline animate-scan opacity-40 pointer-events-none"></div>
+
+    <div class="relative mx-auto max-w-6xl px-6 grid lg:grid-cols-2 gap-14 items-center">
+        <!-- Texto -->
+        <div>
+            <div class="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/5 px-4 py-1.5 text-xs font-semibold text-neon mb-6">
+                <span class="w-2 h-2 rounded-full bg-emerald2 animate-pulse"></span>
+                IoT · ESP32 · TCRT5000 · Telegram
+            </div>
+            <h1 class="font-poppins text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight">
+                Tu nevera <span class="text-gradient">nunca</span><br>
+                se quedará vacía.
+            </h1>
+            <p class="mt-6 text-lg text-techgray max-w-xl leading-relaxed">
+                <strong class="text-white">Never-Out</strong> vigila tu inventario doméstico en tiempo real con sensores infrarrojos y un microcontrolador ESP32. Cuando algo se agota, tu tienda de barrio lo sabe antes que tú — y te avisa por Telegram.
+            </p>
+            <!-- Botones con brillo neón -->
+            <div class="mt-9 flex flex-col sm:flex-row gap-4">
+                <a href="login.html" class="group relative rounded-2xl bg-neon px-8 py-4 font-poppins font-bold text-space text-center shadow-neonglow hover:shadow-[0_0_60px_rgba(0,242,254,0.6)] transition-all duration-300 hover:scale-105">
+                    Comenzar Ahora
+                    <span class="absolute inset-0 rounded-2xl border border-white/30 pointer-events-none"></span>
+                </a>
+                <a href="#arquitectura" class="rounded-2xl border border-violet/50 bg-violet/10 px-8 py-4 font-poppins font-bold text-violet text-center shadow-violetglow hover:bg-violet/20 transition-all duration-300 hover:scale-105">
+                    Ver Arquitectura
+                </a>
+            </div>
+            <!-- Mini estadísticas -->
+            <div class="mt-12 grid grid-cols-3 gap-6 max-w-md">
+                <div>
+                    <p class="font-poppins text-2xl font-bold text-neon">24/7</p>
+                    <p class="text-xs text-techgray mt-1">Monitoreo continuo</p>
+                </div>
+                <div>
+                    <p class="font-poppins text-2xl font-bold text-violet">&lt;1s</p>
+                    <p class="text-xs text-techgray mt-1">Alerta instantánea</p>
+                </div>
+                <div>
+                    <p class="font-poppins text-2xl font-bold text-emerald2">0</p>
+                    <p class="text-xs text-techgray mt-1">Productos olvidados</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mockup de nevera inteligente -->
+        <div class="relative animate-float hidden lg:block">
+            <div class="rounded-3xl border border-cyan-500/30 bg-graphite/70 backdrop-blur-xl p-6 shadow-neon max-w-sm mx-auto">
+                <div class="flex items-center justify-between mb-5">
+                    <p class="font-poppins font-semibold text-sm">Mi Nevera · <span class="text-emerald2">En línea</span></p>
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald2 animate-pulse"></span>
+                </div>
+                <!-- Productos simulados -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between rounded-xl border border-emerald2/30 bg-emerald2/5 px-4 py-3">
+                        <span class="text-sm">🥛 Leche Entera</span>
+                        <span class="text-xs font-bold text-emerald2">STOCK OK</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-xl border border-amber2/30 bg-amber2/5 px-4 py-3">
+                        <span class="text-sm">🥚 Huevos (Docena)</span>
+                        <span class="text-xs font-bold text-amber2">BAJO · 3 und</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-xl border border-redneon/40 bg-redneon/10 px-4 py-3 animate-pulse-red">
+                        <span class="text-sm">🍞 Pan Artesanal</span>
+                        <span class="text-xs font-bold text-redneon">AGOTADO</span>
+                    </div>
+                    <div class="flex items-center justify-between rounded-xl border border-emerald2/30 bg-emerald2/5 px-4 py-3">
+                        <span class="text-sm">🧀 Queso Doble Crema</span>
+                        <span class="text-xs font-bold text-emerald2">STOCK OK</span>
+                    </div>
+                </div>
+                <!-- Notificación Telegram simulada -->
+                <div class="mt-5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <svg class="w-4 h-4 text-neon" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.06 3.16 9.38 7.61 11.12-.1-.95-.2-2.4.04-3.44.22-.94 1.4-5.96 1.4-5.96s-.36-.72-.36-1.78c0-1.66.96-2.9 2.16-2.9 1.02 0 1.51.77 1.51 1.68 0 1.03-.65 2.56-1 3.98-.28 1.19.6 2.16 1.78 2.16 2.14 0 3.79-2.26 3.79-5.52 0-2.89-2.08-4.9-5.04-4.9-3.44 0-5.46 2.58-5.46 5.24 0 1.04.4 2.15.9 2.76.1.12.11.22.08.34l-.33 1.36c-.05.22-.17.27-.4.16-1.5-.7-2.43-2.88-2.43-4.64 0-3.77 2.74-7.25 7.9-7.25 4.14 0 7.37 2.95 7.37 6.91 0 4.12-2.6 7.43-6.21 7.43-1.21 0-2.35-.63-2.74-1.37l-.75 2.85c-.27 1.04-.99 2.35-1.48 3.14C9.57 23.84 10.76 24 12 24c6.63 0 12-5.37 12-12S18.63 0 12 0z"/></svg>
+                        <span class="text-xs font-semibold text-neon">Never-Out Bot</span>
+                        <span class="text-[10px] text-techgray">ahora</span>
+                    </div>
+                    <p class="text-xs text-techgray leading-relaxed">📦 <span class="text-white">Pan Artesanal</span> agotado en tu nevera. ¿Cotizar con <span class="text-white">Tienda Don Pepe</span>?</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ==================== CARACTERÍSTICAS ==================== -->
+<section id="caracteristicas" class="relative py-24">
+    <div class="mx-auto max-w-6xl px-6">
+        <div class="text-center mb-16">
+            <p class="text-neon font-semibold text-sm tracking-widest uppercase mb-3">Características</p>
+            <h2 class="font-poppins text-3xl sm:text-4xl font-bold">Tecnología que <span class="text-gradient">siente tu hogar</span></h2>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- Tarjeta 1: Sensores -->
+            <div class="rounded-3xl border border-cyan-500/30 bg-graphite/60 backdrop-blur-xl p-8 shadow-neon hover:border-neon/60 transition-all duration-300 hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-2xl bg-neon/10 border border-neon/40 flex items-center justify-center text-2xl mb-5">📡</div>
+                <h3 class="font-poppins font-bold text-lg mb-3">Sensores TCRT5000</h3>
+                <p class="text-sm text-techgray leading-relaxed">Infrarrojos de precisión detectan la presencia de cada producto en su compartimento, sin contacto y sin mantenimiento.</p>
+            </div>
+            <!-- Tarjeta 2: ESP32 -->
+            <div class="rounded-3xl border border-violet/30 bg-graphite/60 backdrop-blur-xl p-8 shadow-neon hover:border-violet/60 transition-all duration-300 hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-2xl bg-violet/10 border border-violet/40 flex items-center justify-center text-2xl mb-5">⚡</div>
+                <h3 class="font-poppins font-bold text-lg mb-3">Cerebro ESP32</h3>
+                <p class="text-sm text-techgray leading-relaxed">Microcontrolador con WiFi que procesa las lecturas en milisegundos y sincroniza tu inventario con la nube al instante.</p>
+            </div>
+            <!-- Tarjeta 3: Telegram -->
+            <div class="rounded-3xl border border-emerald2/30 bg-graphite/60 backdrop-blur-xl p-8 shadow-neon hover:border-emerald2/60 transition-all duration-300 hover:-translate-y-1">
+                <div class="w-12 h-12 rounded-2xl bg-emerald2/10 border border-emerald2/40 flex items-center justify-center text-2xl mb-5">💬</div>
+                <h3 class="font-poppins font-bold text-lg mb-3">Bot de Telegram</h3>
+                <p class="text-sm text-techgray leading-relaxed">Recibe alertas de agotamiento, confirma tus pedidos y habla directo con tu tendero de confianza desde el chat que ya usas.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== ARQUITECTURA DEL SISTEMA ==================== -->
+<section id="arquitectura" class="relative py-24 bg-panel/20 border-y border-cyan-500/10">
+    <div class="mx-auto max-w-5xl px-6">
+        <div class="text-center mb-16">
+            <p class="text-violet font-semibold text-sm tracking-widest uppercase mb-3">Arquitectura</p>
+            <h2 class="font-poppins text-3xl sm:text-4xl font-bold">Un ecosistema <span class="text-gradient">conectado de punta a punta</span></h2>
+        </div>
+        <!-- Flujo: Hogar -> ESP32 -> Bot -> Tienda -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+            <!-- Conector visual (solo desktop) -->
+            <div class="hidden lg:block absolute top-14 left-[12%] right-[12%] h-px bg-gradient-to-r from-neon via-violet to-emerald2 opacity-40"></div>
+
+            <div class="relative text-center">
+                <div class="w-28 h-28 mx-auto rounded-3xl border border-neon/40 bg-graphite shadow-neon flex flex-col items-center justify-center gap-1">
+                    <span class="text-3xl">🏠</span>
+                    <span class="text-[10px] font-semibold text-neon uppercase tracking-wider">Hogar</span>
+                </div>
+                <h3 class="font-poppins font-semibold mt-5 mb-2">1. Sensado</h3>
+                <p class="text-xs text-techgray leading-relaxed">Los TCRT5000 detectan cuándo un producto sale del compartimento.</p>
+            </div>
+            <div class="relative text-center">
+                <div class="w-28 h-28 mx-auto rounded-3xl border border-violet/40 bg-graphite shadow-violetglow flex flex-col items-center justify-center gap-1">
+                    <span class="text-3xl">🧠</span>
+                    <span class="text-[10px] font-semibold text-violet uppercase tracking-wider">ESP32</span>
+                </div>
+                <h3 class="font-poppins font-semibold mt-5 mb-2">2. Procesamiento</h3>
+                <p class="text-xs text-techgray leading-relaxed">El ESP32 identifica el producto agotado y dispara la alerta vía WiFi.</p>
+            </div>
+            <div class="relative text-center">
+                <div class="w-28 h-28 mx-auto rounded-3xl border border-cyan-500/40 bg-graphite shadow-neon flex flex-col items-center justify-center gap-1">
+                    <span class="text-3xl">💬</span>
+                    <span class="text-[10px] font-semibold text-neon uppercase tracking-wider">Telegram</span>
+                </div>
+                <h3 class="font-poppins font-semibold mt-5 mb-2">3. Notificación</h3>
+                <p class="text-xs text-techgray leading-relaxed">El Bot notifica al cliente y a la tienda asignada en tiempo real.</p>
+            </div>
+            <div class="relative text-center">
+                <div class="w-28 h-28 mx-auto rounded-3xl border border-emerald2/40 bg-graphite shadow-[0_0_45px_rgba(16,185,129,0.25)] flex flex-col items-center justify-center gap-1">
+                    <span class="text-3xl">🏪</span>
+                    <span class="text-[10px] font-semibold text-emerald2 uppercase tracking-wider">Tienda</span>
+                </div>
+                <h3 class="font-poppins font-semibold mt-5 mb-2">4. Reabastecimiento</h3>
+                <p class="text-xs text-techgray leading-relaxed">La tienda de barrio prepara tu pedido con la entrega que elijas.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 3 MODELOS DE ENTREGA ==================== -->
+<section id="entregas" class="relative py-24">
+    <div class="mx-auto max-w-6xl px-6">
+        <div class="text-center mb-16">
+            <p class="text-emerald2 font-semibold text-sm tracking-widest uppercase mb-3">Logística B2C / B2B</p>
+            <h2 class="font-poppins text-3xl sm:text-4xl font-bold">3 modelos de <span class="text-gradient">entrega inteligente</span></h2>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- Domicilio -->
+            <div class="rounded-3xl border border-cyan-500/30 bg-graphite/60 backdrop-blur-xl p-8 shadow-neon hover:shadow-neonglow transition-all duration-300 group">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="w-14 h-14 rounded-2xl bg-neon/10 border border-neon/40 flex items-center justify-center text-3xl">🛵</div>
+                    <span class="rounded-full bg-neon/10 border border-neon/30 px-3 py-1 text-[10px] font-bold text-neon uppercase tracking-wider">Rápido</span>
+                </div>
+                <h3 class="font-poppins font-bold text-xl mb-3">Domicilio</h3>
+                <p class="text-sm text-techgray leading-relaxed mb-5">El repartidor de la tienda lleva tu pedido a la puerta. Seguimiento en vivo por WhatsApp con temporizador de llegada estimado.</p>
+                <ul class="space-y-2 text-xs text-techgray">
+                    <li class="flex items-center gap-2"><span class="text-neon">▸</span> Seguimiento Preparando → En Camino → Entregado</li>
+                    <li class="flex items-center gap-2"><span class="text-neon">▸</span> Contacto directo con el repartidor</li>
+                </ul>
+            </div>
+            <!-- Recolección con cadena de frío -->
+            <div class="rounded-3xl border border-amber2/30 bg-graphite/60 backdrop-blur-xl p-8 shadow-neon hover:shadow-[0_0_45px_rgba(245,158,11,0.25)] transition-all duration-300">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="w-14 h-14 rounded-2xl bg-amber2/10 border border-amber2/40 flex items-center justify-center text-3xl">🧊</div>
+                    <span class="rounded-full bg-amber2/10 border border-amber2/30 px-3 py-1 text-[10px] font-bold text-amber2 uppercase tracking-wider">Cadena de frío</span>
+                </div>
+                <h3 class="font-poppins font-bold text-xl mb-3">Recolección Controlada</h3>
+                <p class="text-sm text-techgray leading-relaxed mb-5">Recoge en tienda con control estricto de temperatura para refrigerados y congelados. Si el tiempo límite expira, se reprograma automáticamente.</p>
+                <ul class="space-y-2 text-xs text-techgray">
+                    <li class="flex items-center gap-2"><span class="text-amber2">▸</span> Temporizador estricto de recolección</li>
+                    <li class="flex items-center gap-2"><span class="text-amber2">▸</span> Alertas de vencimiento de ventana</li>
+                </ul>
+            </div>
+            <!-- Locker Door QR -->
+            <div class="rounded-3xl border border-violet/30 bg-graphite/60 backdrop-blur-xl p-8 shadow-neon hover:shadow-violetglow transition-all duration-300">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="w-14 h-14 rounded-2xl bg-violet/10 border border-violet/40 flex items-center justify-center text-3xl">🔐</div>
+                    <span class="rounded-full bg-violet/10 border border-violet/30 px-3 py-1 text-[10px] font-bold text-violet uppercase tracking-wider">Locker Door</span>
+                </div>
+                <h3 class="font-poppins font-bold text-xl mb-3">Locker con QR</h3>
+                <p class="text-sm text-techgray leading-relaxed mb-5">Tu pedido queda guardado en un casillero inteligente. Escanea el código QR generado desde la app y la puerta se abre solo para ti.</p>
+                <ul class="space-y-2 text-xs text-techgray">
+                    <li class="flex items-center gap-2"><span class="text-violet">▸</span> QR de un solo uso por pedido</li>
+                    <li class="flex items-center gap-2"><span class="text-violet">▸</span> Retira a cualquier hora, sin filas</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== CTA FINAL ==================== -->
+<section class="relative py-24">
+    <div class="mx-auto max-w-4xl px-6">
+        <div class="relative rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-graphite via-panel to-graphite p-12 text-center shadow-neon overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-64 h-64 bg-neon/10 rounded-full blur-[80px] pointer-events-none"></div>
+            <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-violet/15 rounded-full blur-[80px] pointer-events-none"></div>
+            <h2 class="relative font-poppins text-3xl sm:text-4xl font-bold mb-4">Conecta tu hogar con <span class="text-gradient">tu barrio</span></h2>
+            <p class="relative text-techgray mb-8 max-w-xl mx-auto">Únete a la red Never-Out: hogares que nunca se quedan sin nada y tiendas de barrio que venden más, cada día.</p>
+            <a href="login.html" class="relative inline-block rounded-2xl bg-neon px-10 py-4 font-poppins font-bold text-space shadow-neonglow hover:bg-white transition-all duration-300 hover:scale-105">
+                Crear mi cuenta gratis
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="border-t border-cyan-500/10 py-10">
+    <div class="mx-auto max-w-6xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-neon to-indigo flex items-center justify-center">
+                <span class="text-space font-extrabold text-sm">N</span>
+            </div>
+            <span class="font-poppins font-semibold text-sm">Never<span class="text-neon">-Out</span></span>
+        </div>
+        <p class="text-xs text-techgray">Proyecto ADSO · SENA — Felipe · Panzas · Juan Carlos</p>
+        <p class="text-xs text-techgray">© 2025 Never-Out</p>
+    </div>
+</footer>
+
+<script>
+    // Scroll suave para los anclas del navbar
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+</script>
+</body>
+</html>

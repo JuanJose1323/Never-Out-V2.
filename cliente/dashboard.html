@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Nevera — Never-Out</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space:    '#030712',
+                        graphite: '#0F172A',
+                        panel:    '#1E293B',
+                        neon:     '#00F2FE',
+                        teal:     '#00ADB5',
+                        violet:   '#8B5CF6',
+                        indigo:   '#6366F1',
+                        emerald2: '#10B981',
+                        amber2:   '#F59E0B',
+                        redneon:  '#EF4444',
+                        techgray: '#94A3B8',
+                    },
+                    fontFamily: {
+                        poppins: ['Poppins', 'sans-serif'],
+                        inter:   ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        neon:       '0 0 30px rgba(0,242,254,0.08)',
+                        neonglow:   '0 0 45px rgba(0,242,254,0.35)',
+                        violetglow: '0 0 45px rgba(139,92,246,0.30)',
+                    },
+                    animation: {
+                        'pulse-red': 'pulseRed 1.4s ease-in-out infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'grow': 'grow 1s ease-out',
+                    },
+                    keyframes: {
+                        pulseRed: {
+                            '0%,100%': { boxShadow: '0 0 0px rgba(239,68,68,0.1)' },
+                            '50%':     { boxShadow: '0 0 35px rgba(239,68,68,0.55)' },
+                        },
+                        float: {
+                            '0%,100%': { transform: 'translateY(0px)' },
+                            '50%':     { transform: 'translateY(-14px)' },
+                        },
+                        grow: {
+                            '0%':   { transform: 'scaleX(0)' },
+                            '100%': { transform: 'scaleX(1)' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #030712; font-family: 'Inter', sans-serif; }
+        .text-gradient {
+            background: linear-gradient(90deg, #00F2FE, #3B82F6, #8B5CF6);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        ::-webkit-scrollbar { width: 9px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ADB5; }
+        /* Transformación CSS del QR: escala de grises + contraste (queda como módulo fotográfico) */
+        .qr-modulo img { filter: grayscale(1) contrast(1.4); }
+    </style>
+</head>
+<body class="text-white antialiased">
+
+<!-- ==================== NAV SUPERIOR (PC) ==================== -->
+<nav class="fixed top-0 left-0 right-0 z-40 border-b border-cyan-500/10 bg-space/80 backdrop-blur-xl hidden md:block">
+    <div class="mx-auto max-w-6xl px-6 py-3.5 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-neon to-indigo flex items-center justify-center shadow-neonglow">
+                <span class="text-space font-extrabold text-sm">N</span>
+            </div>
+            <span class="font-poppins font-bold">Never<span class="text-neon">-Out</span></span>
+        </div>
+        <!-- Pestañas SPA desktop -->
+        <div class="flex items-center gap-1">
+            <button data-tab="nevera"  class="tab-btn rounded-xl px-5 py-2 text-sm font-semibold transition-all">🧊 Mi Nevera</button>
+            <button data-tab="pedidos" class="tab-btn rounded-xl px-5 py-2 text-sm font-semibold transition-all">📦 Mis Pedidos</button>
+            <button data-tab="perfil"  class="tab-btn rounded-xl px-5 py-2 text-sm font-semibold transition-all">👤 Mi Perfil</button>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-techgray">Hola, <span class="text-neon font-semibold" id="navUserName">Juan</span></span>
+            <button onclick="cerrarSesion()" class="rounded-xl border border-panel px-4 py-2 text-xs font-semibold text-techgray hover:border-redneon hover:text-redneon transition-colors">Salir</button>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== CONTENIDO SPA ==================== -->
+<main class="max-w-6xl mx-auto px-4 sm:px-6 pt-6 md:pt-24 pb-28 md:pb-12">
+
+    <!-- ============ APARTADO 1: MI NEVERA / CLÓSET ============ -->
+    <section id="tab-nevera" class="tab-panel">
+        <!-- Resumen inteligente -->
+        <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
+            <div class="rounded-2xl border border-emerald2/30 bg-graphite/60 backdrop-blur-xl p-4 sm:p-5 shadow-neon">
+                <p class="text-2xl sm:text-3xl font-poppins font-bold text-emerald2" id="kpiOptimos">0</p>
+                <p class="text-[11px] sm:text-xs text-techgray mt-1">Stock óptimo</p>
+            </div>
+            <div class="rounded-2xl border border-amber2/30 bg-graphite/60 backdrop-blur-xl p-4 sm:p-5 shadow-neon">
+                <p class="text-2xl sm:text-3xl font-poppins font-bold text-amber2" id="kpiBajos">0</p>
+                <p class="text-[11px] sm:text-xs text-techgray mt-1">Stock bajo</p>
+            </div>
+            <div class="rounded-2xl border border-redneon/40 bg-graphite/60 backdrop-blur-xl p-4 sm:p-5 shadow-neon animate-pulse-red">
+                <p class="text-2xl sm:text-3xl font-poppins font-bold text-redneon" id="kpiAgotados">0</p>
+                <p class="text-[11px] sm:text-xs text-techgray mt-1">Agotados</p>
+            </div>
+        </div>
+
+        <!-- Encabezado + estado de sensores -->
+        <div class="flex items-center justify-between mb-5">
+            <div>
+                <h1 class="font-poppins text-xl sm:text-2xl font-bold">Mi Nevera <span class="text-gradient">Inteligente</span></h1>
+                <p class="text-xs text-techgray mt-1">ESP32 · 4 sensores TCRT5000 activos · <span class="text-emerald2">Sincronizado</span></p>
+            </div>
+            <span class="flex items-center gap-2 text-xs text-techgray"><span class="w-2 h-2 rounded-full bg-emerald2 animate-pulse"></span> En línea</span>
+        </div>
+
+        <!-- Grid de productos (generado por JS) -->
+        <div id="gridProductos" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+    </section>
+
+    <!-- ============ APARTADO 2: MIS PEDIDOS ============ -->
+    <section id="tab-pedidos" class="tab-panel hidden">
+        <h1 class="font-poppins text-xl sm:text-2xl font-bold mb-1">Mis <span class="text-gradient">Pedidos</span></h1>
+        <p class="text-xs text-techgray mb-8">Sincronización en tiempo real con tu tienda de barrio · <span class="text-emerald2">Datos actualizados &lt;1 s</span></p>
+
+        <!-- --- Para recoger: Locker Door con QR --- -->
+        <h2 class="font-poppins font-semibold text-sm uppercase tracking-widest text-violet mb-4">🔐 Para Recoger · Locker Door</h2>
+        <div id="listaLockers" class="space-y-4 mb-10"></div>
+
+        <!-- --- Para recoger: Recolección con cadena de frío --- -->
+        <h2 class="font-poppins font-semibold text-sm uppercase tracking-widest text-amber2 mb-4">🧊 Recolección · Cadena de Frío</h2>
+        <div id="listaRecoleccion" class="space-y-4 mb-10"></div>
+
+        <!-- --- En camino: Domicilios --- -->
+        <h2 class="font-poppins font-semibold text-sm uppercase tracking-widest text-neon mb-4">🛵 En Camino · Domicilio</h2>
+        <div id="listaDomicilios" class="space-y-4"></div>
+    </section>
+
+    <!-- ============ APARTADO 3: MI PERFIL ============ -->
+    <section id="tab-perfil" class="tab-panel hidden">
+        <h1 class="font-poppins text-xl sm:text-2xl font-bold mb-1">Mi <span class="text-gradient">Perfil</span></h1>
+        <p class="text-xs text-techgray mb-8">Configuración de tu cuenta Never-Out</p>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Datos personales -->
+            <div class="rounded-3xl border border-cyan-500/30 bg-graphite/60 backdrop-blur-xl p-6 shadow-neon">
+                <h2 class="font-poppins font-semibold mb-5">📍 Direcciones de entrega</h2>
+                <label class="block text-xs font-semibold text-techgray uppercase tracking-wider mb-2">Dirección principal</label>
+                <input type="text" value="Cra 45 #12-30, Barrio La Esperanza" id="dirPrincipal"
+                    class="w-full rounded-xl border border-panel bg-space/60 px-4 py-3 text-sm outline-none focus:border-neon transition-all mb-4">
+                <label class="block text-xs font-semibold text-techgray uppercase tracking-wider mb-2">Referencia</label>
+                <input type="text" value="Casa verde, portón negro" id="dirRef"
+                    class="w-full rounded-xl border border-panel bg-space/60 px-4 py-3 text-sm outline-none focus:border-neon transition-all mb-5">
+                <button onclick="guardarPerfil()" class="w-full rounded-xl bg-neon py-3 font-poppins font-bold text-sm text-space shadow-neonglow hover:bg-white transition-all">Guardar dirección</button>
+            </div>
+            <!-- Estado del bot de Telegram -->
+            <div class="rounded-3xl border border-cyan-500/30 bg-graphite/60 backdrop-blur-xl p-6 shadow-neon">
+                <h2 class="font-poppins font-semibold mb-5">💬 Bot de Telegram</h2>
+                <div class="flex items-center gap-4 rounded-2xl border border-emerald2/30 bg-emerald2/5 p-4 mb-5">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald2/10 border border-emerald2/40 flex items-center justify-center text-2xl">🤖</div>
+                    <div>
+                        <p class="text-sm font-semibold">Vinculado con <span class="text-emerald2">@NeverOutBot</span></p>
+                        <p class="text-xs text-techgray">Alertas activas · Chat ID: 8421***93</p>
+                    </div>
+                </div>
+                <p class="text-xs text-techgray leading-relaxed mb-5">Recibirás una alerta cada vez que un sensor detecte un producto agotado, y podrás confirmar pedidos directamente desde el chat.</p>
+                <button onclick="desvincularBot()" class="w-full rounded-xl border border-redneon/40 bg-redneon/10 py-3 font-poppins font-bold text-sm text-redneon hover:bg-redneon/20 transition-all">Desvincular bot</button>
+                <p class="text-center text-[11px] text-techgray mt-4">Tienda asignada: <span class="text-neon font-semibold">Tienda Don Pepe</span></p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ==================== BOTÓN FLOTANTE COTIZAR ==================== -->
+<button onclick="cotizarFaltantes()"
+    class="fixed bottom-24 md:bottom-8 right-5 z-40 rounded-2xl bg-neon px-5 py-3.5 font-poppins font-bold text-sm text-space shadow-neonglow hover:bg-white transition-all duration-300 hover:scale-105 flex items-center gap-2">
+    🛒 Cotizar faltantes (<span id="faltantesCount">0</span>)
+</button>
+
+<!-- ==================== BOTTOM NAV (MÓVIL) ==================== -->
+<nav class="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-cyan-500/20 bg-graphite/90 backdrop-blur-xl">
+    <div class="grid grid-cols-3">
+        <button data-tab="nevera"  class="tab-btn-mob flex flex-col items-center gap-1 py-3 text-[10px] font-semibold">
+            <span class="text-lg">🧊</span> Mi Nevera
+        </button>
+        <button data-tab="pedidos" class="tab-btn-mob flex flex-col items-center gap-1 py-3 text-[10px] font-semibold">
+            <span class="text-lg">📦</span> Pedidos
+        </button>
+        <button data-tab="perfil"  class="tab-btn-mob flex flex-col items-center gap-1 py-3 text-[10px] font-semibold">
+            <span class="text-lg">👤</span> Perfil
+        </button>
+    </div>
+</nav>
+
+<!-- ==================== MODAL QR (LOCKER) ==================== -->
+<div id="modalQR" class="fixed inset-0 z-50 hidden items-center justify-center bg-space/90 backdrop-blur-sm p-6">
+    <div class="rounded-3xl border border-violet/40 bg-graphite shadow-violetglow p-8 max-w-sm w-full text-center relative">
+        <button onclick="cerrarModalQR()" class="absolute top-4 right-4 text-techgray hover:text-white transition-colors">✕</button>
+        <p class="font-poppins font-bold text-lg mb-1">Casillero <span class="text-violet" id="qrLockerId">L-04</span></p>
+        <p class="text-xs text-techgray mb-6">Presenta este código QR al escáner del locker</p>
+        <!-- QR simulado (imagen con filtro CSS) -->
+        <div class="qr-modulo w-48 h-48 mx-auto rounded-2xl border border-violet/40 bg-white p-3 mb-5">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=NEVEROUT-LOCKER-04" alt="QR de apertura" class="w-full h-full">
+        </div>
+        <p class="text-xs text-techgray mb-6">Código de un solo uso · Expira en <span class="text-neon font-bold" id="qrTimer">05:00</span></p>
+        <button onclick="simularApertura()" class="w-full rounded-xl bg-violet py-3 font-poppins font-bold text-sm text-white shadow-violetglow hover:bg-white hover:text-space transition-all">🔓 Simular apertura de puerta</button>
+    </div>
+</div>
+
+<!-- Toast de notificaciones -->
+<div id="toast" class="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-50 hidden rounded-2xl border border-emerald2/40 bg-graphite px-6 py-3.5 text-sm shadow-neon"></div>
+
+<!-- Módulo compartido + lógica del dashboard -->
+<script src="../assets/app.js"></script>
+<script>
+/* ============================================================
+   DASHBOARD CLIENTE · Vanilla JS puro (SPA)
+   ============================================================ */
+
+/* --- RNF-005: protección de ruta por token de sesión --- */
+if (!NO.validarSesion('cliente')) {
+    // Sin sesión válida -> regresar al login
+    window.location.href = '../login.html';
+}
+
+/* --- Datos del inventario (simulan lecturas del ESP32/TCRT5000) --- */
+const productos = [
+    { id: 'leche',  nombre: 'Leche Entera',    emoji: '🥛', estado: 'ok',      nivel: '4 L' },
+    { id: 'huevos', nombre: 'Huevos (Docena)', emoji: '🥚', estado: 'bajo',    nivel: '3 und' },
+    { id: 'pan',    nombre: 'Pan Artesanal',   emoji: '🍞', estado: 'agotado', nivel: '0 und' },
+    { id: 'queso',  nombre: 'Queso Doble Crema', emoji: '🧀', estado: 'ok',    nivel: '500 g' },
+    { id: 'jamon',  nombre: 'Jamón de Pavo',   emoji: '🥓', estado: 'ok',      nivel: '250 g' },
+    { id: 'jugo',   nombre: 'Jugo de Naranja', emoji: '🧃', estado: 'agotado', nivel: '0 und' },
+];
+
+/* --- Pedidos demo (los estados se sincronizan con el panel del tendero) --- */
+const pedidos = [
+    { id: 'P-001', tipo: 'locker',      estado: 'listo',      locker: 'L-04', texto: '2× Pan Artesanal, 1× Leche Entera' },
+    { id: 'P-002', tipo: 'recoleccion', estado: 'esperando',  texto: '1× Queso Doble Crema, 1× Jamón de Pavo', minutos: 8 },
+    { id: 'P-003', tipo: 'domicilio',   estado: 'preparando', texto: '2× Jugo de Naranja, 1× Huevos (Docena)', repartidor: '321****567' },
+];
+
+/* --- Estado SPA: pestañas --- */
+function activarTab(nombre) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+    document.getElementById('tab-' + nombre).classList.remove('hidden');
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        const activo = b.dataset.tab === nombre;
+        b.classList.toggle('bg-neon/10', activo);
+        b.classList.toggle('text-neon', activo);
+        b.classList.toggle('text-techgray', !activo);
+    });
+    document.querySelectorAll('.tab-btn-mob').forEach(b => {
+        const activo = b.dataset.tab === nombre;
+        b.classList.toggle('text-neon', activo);
+        b.classList.toggle('text-techgray', !activo);
+        b.classList.toggle('border-t-2', activo);
+        b.classList.toggle('border-neon', activo);
+    });
+}
+document.querySelectorAll('.tab-btn, .tab-btn-mob').forEach(b => {
+    b.addEventListener('click', () => activarTab(b.dataset.tab));
+});
+
+/* --- Render del inventario --- */
+function estadoVisual(estado) {
+    if (estado === 'ok')      return { borde: 'border-emerald2/30', fondo: 'bg-emerald2/5', texto: 'text-emerald2', etiqueta: 'STOCK OK' };
+    if (estado === 'bajo')    return { borde: 'border-amber2/30',   fondo: 'bg-amber2/5',   texto: 'text-amber2',   etiqueta: 'BAJO' };
+    return { borde: 'border-redneon/40', fondo: 'bg-redneon/10 animate-pulse-red', texto: 'text-redneon', etiqueta: 'AGOTADO' };
+}
+
+function renderInventario() {
+    const grid = document.getElementById('gridProductos');
+    grid.innerHTML = productos.map(p => {
+        const v = estadoVisual(p.estado);
+        return `
+        <div class="rounded-2xl border ${v.borde} ${v.fondo} backdrop-blur-xl p-4 shadow-neon transition-all hover:-translate-y-1">
+            <div class="text-3xl mb-2">${p.emoji}</div>
+            <p class="text-sm font-semibold leading-tight">${p.nombre}</p>
+            <p class="text-[11px] text-techgray mt-1">${p.nivel}</p>
+            <p class="text-[10px] font-bold ${v.texto} mt-2 tracking-wider">${v.etiqueta}</p>
+        </div>`;
+    }).join('');
+
+    // KPIs
+    const ok = productos.filter(p => p.estado === 'ok').length;
+    const bajo = productos.filter(p => p.estado === 'bajo').length;
+    const agotado = productos.filter(p => p.estado === 'agotado').length;
+    document.getElementById('kpiOptimos').textContent = ok;
+    document.getElementById('kpiBajos').textContent = bajo;
+    document.getElementById('kpiAgotados').textContent = agotado;
+    document.getElementById('faltantesCount').textContent = agotado + bajo;
+}
+
+/* --- Render de pedidos --- */
+function renderPedidos() {
+    // Lockers (QR)
+    const lockers = pedidos.filter(p => p.tipo === 'locker');
+    document.getElementById('listaLockers').innerHTML = lockers.map(p => `
+        <div class="rounded-2xl border border-violet/30 bg-graphite/60 backdrop-blur-xl p-5 shadow-neon flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <p class="font-semibold text-sm">Pedido <span class="text-violet">${p.id}</span> · Casillero ${p.locker}</p>
+                <p class="text-xs text-techgray mt-1">${p.texto}</p>
+                <p class="text-[11px] text-emerald2 mt-2">✅ Listo para retiro</p>
+            </div>
+            <button onclick="abrirQR('${p.locker}')" class="rounded-xl bg-violet px-5 py-2.5 font-poppins font-bold text-xs text-white shadow-violetglow hover:bg-white hover:text-space transition-all">Ver QR de apertura</button>
+        </div>`).join('') || '<p class="text-sm text-techgray">Sin pedidos en locker.</p>';
+
+    // Recolección (cadena de frío)
+    const reco = pedidos.filter(p => p.tipo === 'recoleccion');
+    document.getElementById('listaRecoleccion').innerHTML = reco.map(p => `
+        <div class="rounded-2xl border border-amber2/30 bg-graphite/60 backdrop-blur-xl p-5 shadow-neon">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <p class="font-semibold text-sm">Pedido <span class="text-amber2">${p.id}</span> · Recolección presencial</p>
+                    <p class="text-xs text-techgray mt-1">${p.texto}</p>
+                    <p class="text-[11px] text-amber2 mt-2">🧊 Cadena de frío activa · Entrega refrigerada</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-2xl font-poppins font-bold text-amber2" id="timer-${p.id}">--:--</p>
+                    <p class="text-[10px] text-techgray">Tiempo restante</p>
+                </div>
+            </div>
+            <div class="mt-4 h-1.5 rounded-full bg-panel overflow-hidden">
+                <div class="h-full rounded-full bg-gradient-to-r from-amber2 to-redneon animate-grow origin-left" style="width:${Math.min(100, (p.minutos / 15) * 100)}%"></div>
+            </div>
+            <p class="text-[11px] text-techgray mt-2">⏠ Si el tiempo expira, el pedido se reprograma por seguridad de la cadena de frío.</p>
+        </div>`).join('') || '<p class="text-sm text-techgray">Sin recolecciones activas.</p>';
+
+    // Domicilios
+    const domis = pedidos.filter(p => p.tipo === 'domicilio');
+    document.getElementById('listaDomicilios').innerHTML = domis.map(p => {
+        // Barra de progreso: Preparando -> En Camino -> Entregado
+        const pasos = ['Preparando', 'En Camino', 'Entregado'];
+        const idx = pasos.indexOf(p.estado);
+        const pct = p.estado === 'preparando' ? 33 : p.estado === 'en camino' ? 66 : 100;
+        return `
+        <div class="rounded-2xl border border-cyan-500/30 bg-graphite/60 backdrop-blur-xl p-5 shadow-neon">
+            <div class="flex items-center justify-between mb-4">
+                <p class="font-semibold text-sm">Pedido <span class="text-neon">${p.id}</span></p>
+                <p class="text-xs text-techgray">${p.texto}</p>
+            </div>
+            <div class="flex items-center gap-2 mb-2">
+                ${pasos.map((paso, i) => `
+                    <div class="flex-1 h-1.5 rounded-full ${i <= idx ? 'bg-neon' : 'bg-panel'}"></div>
+                `).join('')}
+            </div>
+            <div class="flex justify-between text-[10px] text-techgray mb-4">
+                <span class="${idx >= 0 ? 'text-neon font-semibold' : ''}">Preparando</span>
+                <span class="${idx >= 1 ? 'text-neon font-semibold' : ''}">En Camino</span>
+                <span class="${idx >= 2 ? 'text-emerald2 font-semibold' : ''}">Entregado</span>
+            </div>
+            <button onclick="contactarWhatsApp('${p.repartidor}')" class="w-full rounded-xl border border-emerald2/40 bg-emerald2/10 py-3 font-poppins font-bold text-sm text-emerald2 hover:bg-emerald2/20 transition-all">💬 Contactar repartidor por WhatsApp</button>
+        </div>`;
+    }).join('') || '<p class="text-sm text-techgray">Sin domicilios activos.</p>';
+}
+
+/* --- Temporizador de cadena de frío (cuenta regresiva real) --- */
+setInterval(() => {
+    pedidos.filter(p => p.tipo === 'recoleccion' && p.estado === 'esperando').forEach(p => {
+        if (p.minutos > 0) p.minutos -= 1 / 60; // decremento por segundo (1 min = 60 s)
+        const el = document.getElementById('timer-' + p.id);
+        if (el) {
+            const m = Math.floor(p.minutos);
+            const s = Math.floor((p.minutos - m) * 60);
+            el.textContent = m + ':' + String(s).padStart(2, '0');
+            if (p.minutos <= 2) el.classList.add('text-redneon');
+        }
+    });
+    renderPedidos(); // re-render para mantener el progreso vivo
+}, 1000);
+
+/* --- QR del locker --- */
+function abrirQR(lockerId) {
+    document.getElementById('qrLockerId').textContent = lockerId;
+    const modal = document.getElementById('modalQR');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    // Cuenta regresiva del QR de un solo uso
+    let segundos = 300;
+    const timer = document.getElementById('qrTimer');
+    clearInterval(window.qrInterval);
+    window.qrInterval = setInterval(() => {
+        segundos--;
+        const m = Math.floor(segundos / 60);
+        const s = segundos % 60;
+        timer.textContent = m + ':' + String(s).padStart(2, '0');
+        if (segundos <= 0) cerrarModalQR();
+    }, 1000);
+}
+function cerrarModalQR() {
+    clearInterval(window.qrInterval);
+    const modal = document.getElementById('modalQR');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+function simularApertura() {
+    cerrarModalQR();
+    mostrarToast('🔓 Puerta del casillero abierta. ¡Buen provecho!');
+}
+
+/* --- WhatsApp del repartidor --- */
+function contactarWhatsApp(num) {
+    // Abre WhatsApp con mensaje precargado (número ofuscado en demo)
+    window.open('https://wa.me/57' + num.replace(/\*/g, '12') + '?text=' + encodeURIComponent('Hola, ¿dónde va mi pedido Never-Out?'), '_blank');
+}
+
+/* --- Cotizar faltantes -> checkout --- */
+function cotizarFaltantes() {
+    const faltantes = productos.filter(p => p.estado === 'agotado' || p.estado === 'bajo').map(p => p.nombre);
+    if (faltantes.length === 0) { mostrarToast('✅ Todo tu inventario está óptimo.'); return; }
+    sessionStorage.setItem('no_cotizacion', JSON.stringify(faltantes));
+    window.location.href = 'checkout.html';
+}
+
+/* --- Perfil --- */
+function guardarPerfil() {
+    mostrarToast('📍 Dirección guardada correctamente.');
+}
+function desvincularBot() {
+    mostrarToast('⚠️ Bot desvinculado. Las alertas quedaron pausadas.');
+}
+
+/* --- Toast --- */
+function mostrarToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    clearTimeout(window.toastTimer);
+    window.toastTimer = setTimeout(() => t.classList.add('hidden'), 3200);
+}
+
+/* --- Cerrar sesión --- */
+function cerrarSesion() {
+    NO.cerrarSesion();
+    window.location.href = '../login.html';
+}
+
+/* --- Sincronización en tiempo real con el panel del tendero (<1 s) --- */
+NO.onPedidosSync(estados => {
+    estados.forEach(e => {
+        const pedido = pedidos.find(p => p.id === e.id);
+        if (pedido) pedido.estado = e.estado;
+    });
+    renderPedidos();
+    console.log('[Rendimiento] Pedidos sincronizados desde el panel del tendero.');
+});
+
+/* --- Inicialización --- */
+document.getElementById('navUserName').textContent = (NO.leerPedidos(), 'Juan Carlos');
+renderInventario();
+renderPedidos();
+activarTab('nevera');
+</script>
+</body>
+</html>
